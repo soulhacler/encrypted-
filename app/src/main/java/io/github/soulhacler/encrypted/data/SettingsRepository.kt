@@ -44,10 +44,13 @@ class SettingsRepository(private val context: Context) {
             hapticsEnabled = prefs[Keys.HAPTICS] ?: true,
             teamNames = prefs[Keys.TEAM_NAMES].decodeNames(),
             playerNames = prefs[Keys.PLAYER_NAMES].decodeNames(),
-            classicBest = prefs.asMap().mapNotNull { (key, value) ->
-                val seconds = key.name.removePrefix(Keys.BEST_PREFIX)
-                if (key.name.startsWith(Keys.BEST_PREFIX) && value is Int) seconds.toIntOrNull()?.let { it to value } else null
-            }.toMap(),
+            classicBest = buildMap {
+                for ((key, value) in prefs.asMap()) {
+                    if (!key.name.startsWith(Keys.BEST_PREFIX) || value !is Int) continue
+                    val seconds = key.name.removePrefix(Keys.BEST_PREFIX).toIntOrNull() ?: continue
+                    put(seconds, value)
+                }
+            },
         )
     }
 
