@@ -54,10 +54,18 @@ class PuzzleDatabaseTest {
     }
 
     @Test
-    fun `each difficulty has enough puzzles for a full game`() {
+    fun `each difficulty has enough puzzles for several games`() {
         Difficulty.entries.forEach { difficulty ->
             val count = library.count(Categories.RANDOM_MIX.id, difficulty)
-            assertTrue("$difficulty has only $count", count >= 50)
+            assertTrue("$difficulty has only $count", count >= 80)
+        }
+    }
+
+    @Test
+    fun `every category offers some hard puzzles`() {
+        Categories.builtIn.forEach { category ->
+            val hard = library.count(category.id, Difficulty.HARD)
+            assertTrue("${category.name} has only $hard hard puzzles", hard >= 5)
         }
     }
 

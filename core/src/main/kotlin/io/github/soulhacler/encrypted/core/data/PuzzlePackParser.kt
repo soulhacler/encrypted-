@@ -28,6 +28,12 @@ object PuzzlePackParser {
             if (normalise(p.encrypted) == normalise(p.answer)) {
                 problems += "${p.id}: encrypted phrase is just the answer"
             }
+            val hardest = DifficultyRules.hardestAllowed(p)
+            if (hardest == null) {
+                problems += "${p.id}: gives the answer away (\"${p.encrypted}\" -> \"${p.answer}\")"
+            } else if (p.difficulty > hardest) {
+                problems += "${p.id}: labelled ${p.difficulty.label} but is only disguised enough for ${hardest.label}"
+            }
             seenAnswers.put(normalise(p.answer), p.id)?.let { problems += "${p.id}: same answer as $it" }
             seenEncrypted.put(normalise(p.encrypted), p.id)?.let { problems += "${p.id}: same phrase as $it" }
         }

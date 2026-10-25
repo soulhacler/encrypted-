@@ -30,9 +30,9 @@ One phone, no internet, no accounts, no adverts. Hand it round and start shoutin
 
 ## Features
 
-- **538 hand-written puzzles** across eight categories, written for British English pronunciation:
+- **521 hand-written puzzles** across eight categories, written for British English pronunciation:
   Everyday Phrases, Films & TV, Music, Famous People, Food & Drink, Places, Sports and Animals, plus **Random Mix**.
-- **Easy, Medium and Hard** difficulty, or Mixed.
+- **Easy, Medium and Hard** difficulty, or Mixed. Difficulty is graded by how well each puzzle disguises its answer, not by guesswork (see [Difficulty](#difficulty)).
 - **Four game modes**: Classic, Team Battle, Pass & Play and Party.
 - **Round timer**: 30, 60 (default), 90 or 120 seconds, or a custom length from 10 seconds to 5 minutes.
 - **No repeats**: a card is never dealt twice in a game, and cards you've already seen are held back for later games in the same session.
@@ -120,6 +120,7 @@ The tests in `core/src/test` cover:
 | Round progression: reveal, judge, skip, time running out mid-answer, game over | `GameSessionTest` |
 | Team switching: turn order, rounds, per-team scores, standings and ties | `GameSessionTest` |
 | Puzzle database: valid JSON, unique IDs, no answer given away, category and difficulty coverage | `PuzzleDatabaseTest` |
+| Difficulty grading: similarity measure, visible answer words, limits per level | `DifficultyRulesTest` |
 
 CI (`.github/workflows/build.yml`) runs the tests and builds the debug APK on every push.
 
@@ -183,7 +184,20 @@ docs/PLAY_STORE_RELEASE.md              Store release checklist
 | `category` | A built-in category ID, or one declared in the pack's `categories`. |
 | `difficulty` | `easy`, `medium` or `hard`. |
 
-Current contents: 538 puzzles (290 easy, 195 medium, 53 hard).
+Current contents: 521 puzzles (196 easy, 236 medium, 89 hard), with at least 6 hard puzzles in every category.
+
+### Difficulty
+
+Difficulty is checked, not guessed. `DifficultyRules` in `:core` measures how alike the encrypted phrase and the answer *look* on the page: the Ratcliff/Obershelp similarity of their letters, ignoring case, spaces and punctuation (the same measure as Python's `difflib`). It also checks whether any answer word (3+ letters, apart from words like *the* and *and*) appears in the phrase.
+
+| Level | What it takes |
+| --- | --- |
+| Rejected | A single sound-alike word (*Venus* → Venice), any answer word visible (*Bag cove the **net***), or barely respelled (similarity above 0.84, like *Head dover heels*). |
+| Easy | Similarity 0.84 or less, nothing visible. |
+| Medium | Similarity 0.78 or less, and the answer is at least two words or eight letters. |
+| Hard | Similarity 0.66 or less with a 3+ word (or 12+ letter) answer, or 0.75 or less with a 4+ word (or 16+ letter) answer. Long phrases re-split across many words are hard even when the letters look familiar. |
+
+A puzzle can always be labelled **easier** than the measure allows. Short, famous phrases like *Olive yew* click instantly however well they're spelled, so they're marked easy by ear. It can never be labelled **harder**. `PuzzleDatabaseTest` fails the build if one is.
 
 ### Writing good puzzles
 
@@ -192,11 +206,11 @@ Quality matters more than quantity. Before adding a puzzle, **say it out loud, q
 - It must genuinely sound like the answer. If you have to squint, cut it.
 - Use real words (names are fine) so it reads as nonsense on the page.
 - Lean on British pronunciation: non-rhotic "r" (*water* → "wor-tuh", *Leicester* → "Less tah"), dropped "h" (*Hits rain…*), "-er" as "-ah".
-- Re-splitting syllables across word boundaries is the heart of the game (*Head dover heels*). Give it a lower difficulty if the original words are still easy to see.
+- Re-splitting syllables across word boundaries is the heart of the game (*Head dover heels*). The more the original words show through, the easier it is (see the table above).
 - Keep it family-friendly. Avoid slurs, stereotypes and anything that reads as a dig at a group.
 - Avoid divisive current politicians.
 
-`PuzzleDatabaseTest` rejects duplicate IDs, duplicate answers or phrases, unknown categories, stray whitespace, phrases that are just the answer with the spaces moved, packs under 300 free puzzles, and thin categories or difficulties.
+`PuzzleDatabaseTest` rejects duplicate IDs, duplicate answers or phrases, unknown categories, stray whitespace, puzzles that give the answer away or are labelled harder than their disguise allows, packs under 300 free puzzles, and thin categories or difficulties (each level needs 80+ puzzles, and each category 5+ hard ones).
 
 ## Adding content and future premium packs
 
